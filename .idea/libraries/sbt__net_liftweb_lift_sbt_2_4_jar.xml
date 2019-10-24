@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="sbt: net.liftweb:lift-sbt:2.4:jar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/AppData/Local/Coursier/cache/v1/https/repo1.maven.org/maven2/net/liftweb/lift-sbt/2.4/lift-sbt-2.4.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
