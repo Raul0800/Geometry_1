@@ -17,38 +17,50 @@ object main extends App {
   //    lst <- readJson
   //    _ <- toLine(lst)
   //  }
-  val x = readJson
-  val y = circuitList(x)
-  val z = toLine(y)
-  println(z)
-  calculateAngle(z)
+  //val x = readJson
+  //val y = circuitList(x)
+  //val z = toLine(y)
+//  println(z)
+//  calculateAngle(z)
+
+  val lines = for{
+    lst <- readJson
+    circLst <- circuitList(lst)
+    lines <- toLine(circLst)
+  } yield (lines)
+
+  print(lines)
+
+
+
 
   //  for {
   //    lst <- readJson
   //    circLst <- circuitList(lst)
   //  }
 
-  def readJson: List[(Double, Double)] = {
+  def readJson: Either[String, List[(Double, Double)]] = {
     val lines: String = try source.mkString finally source.close()
     //    val json = parse(lines)
     //    val elements = (json).children
     //    val m = elements map(x => x.extract[List[List[Double]]])
     //println(m flatMap (x => x flatMap (y => List((y(0), y(1))))))
-    parse(lines).
+    Right(parse(lines).
       children.
       map(x => x.extract[List[List[Double]]]).
       flatMap(y =>
         y flatMap (z =>
-          List((z(0), z(1)))))
+          List((z(0), z(1))))
+      ))
     //m flatMap (x => x flatMap (y => List((y(0), y(1)))))
   }
 
-  def circuitList(list: List[(Double, Double)]) = {
-    list :+ (list.head)
+  def circuitList(list: List[(Double, Double)]):Either[String, List[(Double, Double)]] = {
+    Right(list :+ (list.head))
   }
 
-  def toLine(list: List[(Double, Double)]) = {
-    list.sliding(2).toList
+  def toLine(list: List[(Double, Double)]): Either[String, List[List[(Double, Double)]]] = {
+    Right(list.sliding(2).toList)
   }
 
   //  double get_ang (const pt & a, const pt & b) {
