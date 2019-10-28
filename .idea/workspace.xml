@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="bd025fc0-6014-423e-a646-8d646856e5d5" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/inp.txt" beforeDir="false" afterPath="$PROJECT_DIR$/inp.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/com/sol1/main.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/com/sol1/main.scala" afterDir="false" />

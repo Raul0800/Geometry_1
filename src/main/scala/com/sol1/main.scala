@@ -23,7 +23,10 @@ object main extends App {
   //  println(z)
   //  calculateAngle(z)
 
-  mainLoop()
+  val results = prepareData match {
+    case Right(value) => mainLoop(value)
+    case Left(value) => println(value)
+  }
 
   def readData: Either[String, List[(Double, Double)]] = {
     val lines: String = try source.mkString finally source.close()
@@ -99,10 +102,13 @@ object main extends App {
     )
   }
 
-  def mainLoop():
-  Either[String, (List[((Double, Double), (Double, Double), Double)], List[Double], List[Double])] = {
+  def prepareData(): Either[String, List[(Double, Double)]] = {
+    readData
+  }
+
+  def mainLoop(lst: List[(Double, Double)]): (Int, Double) = {
     val tuple3 = for {
-      lst <- readData
+      //lst <- readData
       circLst <- circuitList(lst)
       lines <- toLine(circLst)
       cortege <- calculateLenght(lines)
@@ -114,12 +120,44 @@ object main extends App {
 
     val rTuple3 = tuple3.right.get
 
-    //
-    //some logic
-    //
-    if (rTuple3._3.size > 2)
-      mainLoop()
-    else
-      tuple3
+    //ищем наименьший
+    val minH = (rTuple3._3.indexOf(rTuple3._3.min), rTuple3._3.min)
+    println(minH)
+
+    rTuple3._3.size match {
+      case (s) if s > 3 => {
+        val indOfPointsToDel = minH._1 match {
+          case (x) if x == rTuple3._3.size - 1 => (0, minH._1)
+          case _ => (minH._1, minH._1 + 1)
+        }
+        val newLst = for {
+          newX <- rebuildingPoints(rTuple3._1(indOfPointsToDel._1), rTuple3._1(indOfPointsToDel._2))
+          newLst <- refreshList(lst, newX, indOfPointsToDel._1, indOfPointsToDel._2)
+        } yield (newLst)
+
+        mainLoop(newLst.right.get)
+      }
+      case (s) => minH
+      //mainLoop()
+    }
+  }
+
+  def rebuildingPoints(l1: ((Double, Double), (Double, Double), Double),
+                       l2: ((Double, Double), (Double, Double), Double)): Either[String, (Double, Double)] = {
+    val a1 = (l1._2._2 - l1._1._2) / (l1._2._1 - l1._1._1)
+    val b1 = (l1._1._1 * l1._2._1 - l1._1._1 * l1._2._2) / (l1._2._1 - l1._1._1)
+
+    val a2 = (l2._2._2 - l2._1._2) / (l2._2._1 - l2._1._1)
+    val b2 = (l2._1._1 * l2._2._1 - l2._1._1 * l2._2._2) / (l2._2._1 - l2._1._1)
+
+    Right((b1 - b2) / (a1 - a2), a1 * (b1 - b2) / (a1 - a2) - b1)
+  }
+
+  def refreshList(lst: List[(Double, Double)], newP: (Double, Double), indToDel1: Int, indToDel2: Int):
+  Either[String, List[(Double, Double)]] = {
+    Right((lst.slice(0, indToDel1 - 1) ++
+      List(newP) ++
+      lst.slice(indToDel1 + 1, lst.size - 1))
+      .filter(x => lst.indexOf(x) != indToDel2))
   }
 }
