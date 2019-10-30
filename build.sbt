@@ -4,8 +4,8 @@ version := "0.1"
 
 scalaVersion := "2.12.9"
 
-val Http4sVersion = "0.20.8"
-val CirceVersion = "0.11.1"
+//val Http4sVersion = "0.20.8"
+//val CirceVersion = "0.11.1"
 
 //libraryDependencies ++= Seq(
 //  "org.http4s"      %% "http4s-blaze-server" % Http4sVersion,

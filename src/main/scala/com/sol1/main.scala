@@ -2,6 +2,8 @@ package com.sol1
 
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json._
+
+import scala.annotation.tailrec
 import scala.math._
 //import cats._
 //import cats.implicits._
@@ -11,53 +13,38 @@ object main extends App {
 
   val source = scala.io.Source.fromFile("inp.txt")
 
-  //println(readJson)
-  //println(toLine())
-  //  for {
-  //    lst <- readJson
-  //    _ <- toLine(lst)
-  //  }
-  //val x = readJson
-  //val y = circuitList(x)
-  //val z = toLine(y)
-  //  println(z)
-  //  calculateAngle(z)
-
   val results = prepareData match {
-    case Right(value) => mainLoop(value)
+    case Right(value) => mainLoop(value._1, value._2)
     case Left(value) => println(value)
   }
 
-  def readData: Either[String, List[(Double, Double)]] = {
+  println("Answer or error: " + results)
+
+  def readData: Either[String, (List[(Double, Double)], List[Boolean])] = {
     val lines: String = try source.mkString finally source.close()
-    //    val json = parse(lines)
-    //    val elements = (json).children
-    //    val m = elements map(x => x.extract[List[List[Double]]])
-    //println(m flatMap (x => x flatMap (y => List((y(0), y(1))))))
-    println(parse(lines).
+    //    println("readData: " + parse(lines).
+    //      children.
+    //      map(x => x.extract[List[List[Double]]]).
+    //      flatMap(y =>
+    //        y flatMap (z =>
+    //          List((z(0), z(1))))
+    //      ))
+    val lst = parse(lines).
       children.
       map(x => x.extract[List[List[Double]]]).
       flatMap(y =>
         y flatMap (z =>
-          List((z(0), z(1))))
-      ))
-    Right(parse(lines).
-      children.
-      map(x => x.extract[List[List[Double]]]).
-      flatMap(y =>
-        y flatMap (z =>
-          List((z(0), z(1))))
-      ))
-    //m flatMap (x => x flatMap (y => List((y(0), y(1)))))
+          List((z(0), z(1)))))
+    Right(lst, List.fill(lst.size)(false))
   }
 
   def circuitList(list: List[(Double, Double)]): Either[String, List[(Double, Double)]] = {
-    println(list :+ (list.head))
+    println("circuitList: " + (list :+ (list.head)))
     Right(list :+ (list.head))
   }
 
   def toLine(list: List[(Double, Double)]): Either[String, List[List[(Double, Double)]]] = {
-    println(list.sliding(2).toList)
+    //println("toLine: " + list.sliding(2).toList)
     Right(list.sliding(2).toList)
   }
 
@@ -68,7 +55,7 @@ object main extends App {
         x(1),
         sqrt(pow((x(0)._1 - x(1)._1), 2) + pow((x(0)._2 - x(1)._2), 2))
       ))
-    println(cortege)
+    //println("calculateLenght: " + cortege)
     Right(cortege)
   }
 
@@ -82,7 +69,7 @@ object main extends App {
             / (2 * a._3 * b._3))
         }
       })
-    println(list /* :+ list.head*/ , angels)
+    //println("calculateAngle: " + (list /* :+ list.head*/ , angels))
     Right(list /* :+ list.head*/ , angels)
   }
 
@@ -90,11 +77,11 @@ object main extends App {
   Either[String, (List[((Double, Double), (Double, Double), Double)], List[Double], List[Double])] = {
     Right(pair._1, pair._2, pair._1.map(x => {
       val iter1 = pair._1.indexOf(x)
-      val iter2 = if (iter1 == 0) pair._2.size - 1 else if (iter1 == pair._2.size - 1) 0 else iter1 + 1
+      val iter2 = if (iter1 == 0) pair._2.size - 1 else iter1 - 1 //if (iter1 == pair._2.size - 1) 0 else iter1 + 1
 
       (x._3, pair._2(iter1), pair._2(iter2)) match {
         case (l, alph, bet) => {
-          println(l, alph, bet)
+          //println("calculateHigth: " + (l, alph, bet) + ", X: " + x + ", iter1: " + iter1 + ", iter2: " + iter2)
           l * (sin(alph / 2) * sin(bet / 2)) / sin(alph / 2 + bet / 2)
         }
       }
@@ -102,13 +89,13 @@ object main extends App {
     )
   }
 
-  def prepareData(): Either[String, List[(Double, Double)]] = {
+  def prepareData(): Either[String, (List[(Double, Double)], List[Boolean])] = {
     readData
   }
 
-  def mainLoop(lst: List[(Double, Double)]): (Int, Double) = {
+  @tailrec
+  def mainLoop(lst: List[(Double, Double)], checkLst: List[Boolean]): ((Int, Double), List[Boolean]) = {
     val tuple3 = for {
-      //lst <- readData
       circLst <- circuitList(lst)
       lines <- toLine(circLst)
       cortege <- calculateLenght(lines)
@@ -116,48 +103,53 @@ object main extends App {
       tuple3 <- calculateHigth(pair)
     } yield (tuple3)
 
-    println(tuple3)
+    //println(tuple3)
 
     val rTuple3 = tuple3.right.get
 
     //ищем наименьший
     val minH = (rTuple3._3.indexOf(rTuple3._3.min), rTuple3._3.min)
-    println(minH)
-
+    //println("mainLoop: " + minH)
+    println(checkLst)
     rTuple3._3.size match {
       case (s) if s > 3 => {
         val indOfPointsToDel = minH._1 match {
-          case (x) if x == rTuple3._3.size - 1 => (0, minH._1)
-          case _ => (minH._1, minH._1 + 1)
+          case (x) if x == rTuple3._3.size - 1 => (0, minH._1 - 1)
+          case (x) if x == 0 => (rTuple3._3.size - 1, 1)
+          case _ => (minH._1 - 1, minH._1 + 1)
         }
         val newLst = for {
           newX <- rebuildingPoints(rTuple3._1(indOfPointsToDel._1), rTuple3._1(indOfPointsToDel._2))
-          newLst <- refreshList(lst, newX, indOfPointsToDel._1, indOfPointsToDel._2)
+          newLst <- refreshList(lst, newX, minH._1, minH._1 + 1)
         } yield (newLst)
 
-        mainLoop(newLst.right.get)
+        newLst match {
+          case Left(x) => (minH, checkLst)
+          case Right(x) => mainLoop(x, checkLst.slice(0, minH._1) ++ List(true) ++ checkLst.slice(minH._1, checkLst.size))
+        }
       }
-      case (s) => minH
-      //mainLoop()
+      case (s) => (minH, checkLst)
     }
   }
 
   def rebuildingPoints(l1: ((Double, Double), (Double, Double), Double),
                        l2: ((Double, Double), (Double, Double), Double)): Either[String, (Double, Double)] = {
     val a1 = (l1._2._2 - l1._1._2) / (l1._2._1 - l1._1._1)
-    val b1 = (l1._1._1 * l1._2._1 - l1._1._1 * l1._2._2) / (l1._2._1 - l1._1._1)
+    val b1 = (l1._1._1 * l1._2._2 - l1._1._2 * l1._2._1) / (l1._2._1 - l1._1._1)
 
     val a2 = (l2._2._2 - l2._1._2) / (l2._2._1 - l2._1._1)
-    val b2 = (l2._1._1 * l2._2._1 - l2._1._1 * l2._2._2) / (l2._2._1 - l2._1._1)
+    val b2 = (l2._1._1 * l2._2._2 - l2._1._2 * l2._2._1) / (l2._2._1 - l2._1._1)
 
-    Right((b1 - b2) / (a1 - a2), a1 * (b1 - b2) / (a1 - a2) - b1)
+    ((b1 - b2) / (a1 - a2), a1 * (b1 - b2) / (a1 - a2) - b1) match {
+      case (x) if (x._1.isNaN && x._2.isNaN) || (x._1.isInfinite && x._2.isInfinite) => Left("Parallel sides")
+      case (x) => Right(x)
+    }
   }
 
   def refreshList(lst: List[(Double, Double)], newP: (Double, Double), indToDel1: Int, indToDel2: Int):
   Either[String, List[(Double, Double)]] = {
-    Right((lst.slice(0, indToDel1 - 1) ++
-      List(newP) ++
-      lst.slice(indToDel1 + 1, lst.size - 1))
+    Right((lst.slice(0, indToDel1) ++
+      List(newP) ++ lst.slice(indToDel1 + 1, lst.size))
       .filter(x => lst.indexOf(x) != indToDel2))
   }
 }
