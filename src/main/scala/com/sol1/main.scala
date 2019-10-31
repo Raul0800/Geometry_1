@@ -5,8 +5,6 @@ import net.liftweb.json._
 
 import scala.annotation.tailrec
 import scala.math._
-//import cats._
-//import cats.implicits._
 
 object main extends App {
   implicit val formats = DefaultFormats
@@ -14,13 +12,39 @@ object main extends App {
   val source = scala.io.Source.fromFile("inp.txt")
 
   val results = prepareData match {
-    case Right(value) => mainLoop(value._1, value._2)
-    case Left(value) => println(value)
+    case Right(value) => (mainLoop(value, List.empty)
+    //case Left(value) => (null, value)
   }
 
-  println("Answer or error: " + results)
+  //  println("Answer or error: " + results)
+  val fLst = checkCrossing(results._2, results._1._3, results._1._2)
+  writeAnswer(results._1._2, fLst)
 
-  def readData: Either[String, (List[(Double, Double)], List[Boolean])] = {
+  def writeAnswer(radius: Double, lines: List[(List[(Double, Double)], Int)]): Unit = {
+    println("Radius: " + radius)
+    print("Indices: ")
+    lines.map(x => x._2).take(3).foreach(x => print(x + " "))
+    println("\nLines: " + lines.map(x => x._1))
+  }
+
+
+  def checkCrossing(lines: List[List[(Double, Double)]], center: (Double, Double), radius: Double): List[(List[(Double, Double)], Int)] = {
+    val eps = 1.0E-08;
+    lines.map(x => (x, lines.indexOf(x))).filter(pair =>
+      (pair._1) match {
+        case (x) => {
+          (x(0), x(1)) match {
+            case (p1, p2) => {
+              val mP = ((p1._1 + p2._1) / 2, (p1._2 + p2._2) / 2)
+              if (sqrt(pow(mP._1 - center._1, 2) + pow(mP._2 - center._2, 2)) - radius < eps) true
+              else false
+            }
+          }
+        }
+      })
+  }
+
+  def readData: Either[String, List[(Double, Double)]] = {
     val lines: String = try source.mkString finally source.close()
     //    println("readData: " + parse(lines).
     //      children.
@@ -29,17 +53,17 @@ object main extends App {
     //        y flatMap (z =>
     //          List((z(0), z(1))))
     //      ))
-    val lst = parse(lines).
+    Right(parse(lines).
       children.
       map(x => x.extract[List[List[Double]]]).
       flatMap(y =>
         y flatMap (z =>
           List((z(0), z(1)))))
-    Right(lst, List.fill(lst.size)(false))
+    )
   }
 
   def circuitList(list: List[(Double, Double)]): Either[String, List[(Double, Double)]] = {
-    println("circuitList: " + (list :+ (list.head)))
+    //println("circuitList: " + (list :+ (list.head)))
     Right(list :+ (list.head))
   }
 
@@ -89,28 +113,37 @@ object main extends App {
     )
   }
 
-  def prepareData(): Either[String, (List[(Double, Double)], List[Boolean])] = {
+  def prepareData(): Either[String, List[(Double, Double)]] = {
     readData
   }
 
   @tailrec
-  def mainLoop(lst: List[(Double, Double)], checkLst: List[Boolean]): ((Int, Double), List[Boolean]) = {
+  def mainLoop(lst: List[(Double, Double)], lines: List[List[(Double, Double)]]): ((Int, Double, (Double, Double)), List[List[(Double, Double)]]) = {
     val tuple3 = for {
       circLst <- circuitList(lst)
       lines <- toLine(circLst)
       cortege <- calculateLenght(lines)
       pair <- calculateAngle(cortege)
       tuple3 <- calculateHigth(pair)
-    } yield (tuple3)
+    } yield (tuple3, lines)
 
     //println(tuple3)
 
-    val rTuple3 = tuple3.right.get
+    val rTuple3 = tuple3.right.get._1
 
     //ищем наименьший
-    val minH = (rTuple3._3.indexOf(rTuple3._3.min), rTuple3._3.min)
+    val minH = (rTuple3._3.indexOf(rTuple3._3.min), rTuple3._3.min, {
+      val x2x1 = rTuple3._1(rTuple3._3.indexOf(rTuple3._3.min))._1._1 - rTuple3._1(rTuple3._3.indexOf(rTuple3._3.min))._2._1
+      val y2y1 = rTuple3._1(rTuple3._3.indexOf(rTuple3._3.min))._1._2 - rTuple3._1(rTuple3._3.indexOf(rTuple3._3.min))._2._2
+      val ab = pow(x2x1 * x2x1 + y2y1 * y2y1, 0.5)
+      val v1x = -x2x1 / ab
+      val v1y = -y2y1 / ab
+      val v3x = (if (v1y > 0) -v1y else v1y) * rTuple3._3.min
+      val v3y = (if (v1x > 0) -v1x else v1x) * rTuple3._3.min
+      ((rTuple3._1(rTuple3._3.indexOf(rTuple3._3.min))._1._1 + rTuple3._1(rTuple3._3.indexOf(rTuple3._3.min))._2._1) / 2 + v3x,
+        (rTuple3._1(rTuple3._3.indexOf(rTuple3._3.min))._1._2 + rTuple3._1(rTuple3._3.indexOf(rTuple3._3.min))._2._2) / 2 + v3y)
+    })
     //println("mainLoop: " + minH)
-    println(checkLst)
     rTuple3._3.size match {
       case (s) if s > 3 => {
         val indOfPointsToDel = minH._1 match {
@@ -124,11 +157,11 @@ object main extends App {
         } yield (newLst)
 
         newLst match {
-          case Left(x) => (minH, checkLst)
-          case Right(x) => mainLoop(x, checkLst.slice(0, minH._1) ++ List(true) ++ checkLst.slice(minH._1, checkLst.size))
+          case Left(x) => (minH, if (lines.isEmpty) tuple3.right.get._2 else lines)
+          case Right(x) => mainLoop(x, if (lines.isEmpty) tuple3.right.get._2 else lines)
         }
       }
-      case (s) => (minH, checkLst)
+      case _ => (minH, if (lines.isEmpty) tuple3.right.get._2 else lines)
     }
   }
 
